@@ -1,0 +1,85 @@
+name: Build MS Music APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout this repo (contains MS-Music-overlay.zip)
+      uses: actions/checkout@v7
+      with:
+        path: overlay-repo
+
+    - name: Fetch Echo Music (pinned commit) and apply MS Music changes
+      run: |
+        mkdir MS-Music && cd MS-Music
+        git init -q
+        git remote add origin https://github.com/EchoMusicApp/Echo-Music.git
+        git fetch -q --depth 1 origin c69c4081140579b7efcc99eda936f4e4a66948ee
+        git checkout -q FETCH_HEAD
+        cd ..
+        unzip -q overlay-repo/MS-Music-overlay.zip
+        (cd MS-Music-overlay && bash apply.sh "${GITHUB_REPOSITORY_OWNER}" ../MS-Music)
+        # updater/links should point at THIS repository, whatever it is named
+        grep -rl "${GITHUB_REPOSITORY_OWNER}/MS-Music" MS-Music/app/src | xargs -r sed -i "s#${GITHUB_REPOSITORY_OWNER}/MS-Music#${GITHUB_REPOSITORY}#g"
+
+    - name: Publish full source to the 'source' branch so the GPL source stays public
+      env:
+        GH_PAT: ${{ github.token }}
+      run: |
+        cp -r MS-Music /tmp/ms-source
+        cd /tmp/ms-source
+        rm -rf .git .github/workflows
+        git init -q -b source
+        git add -A
+        git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "MS Music full source (Echo Music c69c408 + MS Music changes)"
+        git push -f "https://x-access-token:${GH_PAT}@github.com/${GITHUB_REPOSITORY}.git" source
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v6
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android NDK
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.2.13676358"
+
+    - name: Build debug APK
+      working-directory: MS-Music
+      run: |
+        mkdir -p "$HOME/.android"
+        keytool -genkeypair \
+          -keystore "$HOME/.android/debug.keystore" \
+          -storepass android \
+          -alias androiddebugkey \
+          -keypass android \
+          -dname "CN=Android Debug,O=Android,C=US" \
+          -keyalg RSA \
+          -validity 10000
+        chmod +x gradlew
+        ./gradlew assembleUniversalFossDebug
+
+    - name: Upload APK as build artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: MS-Music-APK
+        path: MS-Music/app/build/outputs/apk/**/*.apk
+
+    - name: Publish APK to Releases (easy download on phone)
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        APK=$(find MS-Music/app/build/outputs/apk -name "*.apk" | head -n 1)
+        cp "$APK" MS-Music-test.apk
+        gh release create "test-${GITHUB_RUN_NUMBER}" MS-Music-test.apk \
+          --repo "${GITHUB_REPOSITORY}" --prerelease \
+          --title "MS Music test build ${GITHUB_RUN_NUMBER}" \
+          --notes "Debug-signed test build of MS Music, a modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
