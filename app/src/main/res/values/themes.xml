@@ -1,0 +1,9 @@
+<resources>
+  <color name="ic_bg">#2F4B6E</color>
+  <color name="window_bg">#C9D6E0</color>
+  <style name="Theme.MSMusic" parent="android:Theme.DeviceDefault.Light.NoActionBar">
+    <item name="android:windowBackground">@color/window_bg</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+  </style>
+</resources>
