@@ -4,7 +4,7 @@ A glassmorphism-styled Android music player by **MSGames**, with synced lyrics, 
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (pick the newest `test-…` release and download `MS-Music-test.apk`).
+Get the latest APK from the [Releases](../../releases) page (pick the newest `test-…` release and download `MS-Music-test.apk`). It is an optimized arm64 build for modern phones.
 
 ## Credits
 
@@ -22,7 +22,7 @@ MS Music also stands on the shoulders of these projects:
 | [Music Recognizer](https://github.com/aleksey-saenko/MusicRecognizer) | Audio recognition |
 | [BravePipe](https://github.com/bravepipeproject/BravePipe) | Decryption handling and backup playback engine |
 
-The same credits are in the app under **Settings → About**.
+A credit row linking to Echo Music is also in the app under **Settings → About**.
 
 ## License and source code
 

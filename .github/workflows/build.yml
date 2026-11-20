@@ -52,20 +52,17 @@ jobs:
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.2.13676358"
 
-    - name: Build debug APK
+    - name: Build optimized release APK (arm64)
       working-directory: MS-Music
+      env:
+        KEY_ALIAS: msmusic
+        KEY_PASSWORD: msmusic-test
+        STORE_PASSWORD: msmusic-test
       run: |
-        mkdir -p "$HOME/.android"
-        keytool -genkeypair \
-          -keystore "$HOME/.android/debug.keystore" \
-          -storepass android \
-          -alias androiddebugkey \
-          -keypass android \
-          -dname "CN=Android Debug,O=Android,C=US" \
-          -keyalg RSA \
-          -validity 10000
+        # Fixed test key, so each new test build installs over the previous one
+        cp "$GITHUB_WORKSPACE/overlay-repo/ci/ms-music-test.jks" keystore.jks
         chmod +x gradlew
-        ./gradlew assembleUniversalFossDebug
+        ./gradlew assembleArm64FossRelease
 
     - name: Upload APK as build artifact
       uses: actions/upload-artifact@v7
@@ -82,4 +79,4 @@ jobs:
         gh release create "test-${GITHUB_RUN_NUMBER}" MS-Music-test.apk \
           --repo "${GITHUB_REPOSITORY}" --prerelease \
           --title "MS Music test build ${GITHUB_RUN_NUMBER}" \
-          --notes "Debug-signed test build of MS Music, a modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
+          --notes "Optimized release build (arm64) of MS Music, signed with a public test key. A modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
