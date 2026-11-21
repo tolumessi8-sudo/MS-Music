@@ -1,0 +1,19 @@
+{
+  "versionName": "1.0.0",
+  "versionCode": 1000,
+  "date": "2026-11-21",
+  "sizeMb": "",
+  "downloadUrl": "https://ms-music-app.netlify.app",
+  "description": "First public release of MS Music.",
+  "changelog": [
+    {
+      "title": "Highlights",
+      "items": [
+        "New glass design and new MS Music logo",
+        "Faster, lighter default settings",
+        "Updates now come from the MS Music website"
+      ]
+    }
+  ],
+  "history": []
+}

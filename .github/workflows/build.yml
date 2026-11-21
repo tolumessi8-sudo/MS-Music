@@ -2,6 +2,11 @@ name: Build MS Music APK
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Leave empty for a test build. Type a version (e.g. 1.0.0) to publish a public release"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -55,12 +60,20 @@ jobs:
     - name: Build optimized release APK (arm64)
       working-directory: MS-Music
       env:
-        KEY_ALIAS: msmusic
-        KEY_PASSWORD: msmusic-test
-        STORE_PASSWORD: msmusic-test
+        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
       run: |
-        # Fixed test key, so each new test build installs over the previous one
-        cp "$GITHUB_WORKSPACE/overlay-repo/ci/ms-music-test.jks" keystore.jks
+        if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+          # Private release key stored in repository secrets
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > keystore.jks
+          export KEY_ALIAS="$RELEASE_KEY_ALIAS" KEY_PASSWORD="$RELEASE_KEY_PASSWORD" STORE_PASSWORD="$RELEASE_STORE_PASSWORD"
+        else
+          # Fixed public test key, so each new test build installs over the previous one
+          cp "$GITHUB_WORKSPACE/overlay-repo/ci/ms-music-test.jks" keystore.jks
+          export KEY_ALIAS=msmusic KEY_PASSWORD=msmusic-test STORE_PASSWORD=msmusic-test
+        fi
         chmod +x gradlew
         ./gradlew assembleArm64FossRelease
 
@@ -70,13 +83,22 @@ jobs:
         name: MS-Music-APK
         path: MS-Music/app/build/outputs/apk/**/*.apk
 
-    - name: Publish APK to Releases (easy download on phone)
+    - name: Publish APK to Releases
       env:
         GH_TOKEN: ${{ github.token }}
+        RELEASE_VERSION: ${{ github.event.inputs.release_version }}
       run: |
         APK=$(find MS-Music/app/build/outputs/apk -name "*.apk" | head -n 1)
-        cp "$APK" MS-Music-test.apk
-        gh release create "test-${GITHUB_RUN_NUMBER}" MS-Music-test.apk \
-          --repo "${GITHUB_REPOSITORY}" --prerelease \
-          --title "MS Music test build ${GITHUB_RUN_NUMBER}" \
-          --notes "Optimized release build (arm64) of MS Music, signed with a public test key. A modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
+        if [ -n "$RELEASE_VERSION" ]; then
+          cp "$APK" MS-Music.apk
+          gh release create "v${RELEASE_VERSION}" MS-Music.apk \
+            --repo "${GITHUB_REPOSITORY}" --latest \
+            --title "MS Music ${RELEASE_VERSION}" \
+            --notes "MS Music ${RELEASE_VERSION} (arm64). A modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
+        else
+          cp "$APK" MS-Music-test.apk
+          gh release create "test-${GITHUB_RUN_NUMBER}" MS-Music-test.apk \
+            --repo "${GITHUB_REPOSITORY}" --prerelease \
+            --title "MS Music test build ${GITHUB_RUN_NUMBER}" \
+            --notes "Optimized release build (arm64) of MS Music, signed with a public test key. A modified fork of Echo Music (GPL-3.0). Full source: the 'source' branch."
+        fi

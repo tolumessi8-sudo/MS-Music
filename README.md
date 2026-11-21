@@ -4,7 +4,9 @@ A glassmorphism-styled Android music player by **MSGames**, with synced lyrics, 
 
 ## Download
 
-Get the latest APK from the [Releases](../../releases) page (pick the newest `test-…` release and download `MS-Music-test.apk`). It is an optimized arm64 build for modern phones.
+Download from the official page: **https://ms-music-app.netlify.app**
+
+Or grab the latest APK straight from [Releases](../../releases/latest) (`MS-Music.apk`). It is an optimized arm64 build for modern phones.
 
 ## Credits
 
